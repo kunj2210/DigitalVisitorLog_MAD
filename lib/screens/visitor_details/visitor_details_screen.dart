@@ -1,26 +1,52 @@
 import 'package:flutter/material.dart';
+import '../../models/visitor_model.dart';
+import '../../services/database_service.dart';
+import '../add_visitor/add_visitor_screen.dart';
 
 class VisitorDetailsScreen extends StatelessWidget {
-  final Map<String, dynamic>? visitorData;
+  final Visitor visitor;
 
-  const VisitorDetailsScreen({super.key, this.visitorData});
+  const VisitorDetailsScreen({super.key, required this.visitor});
+
+  void _deleteVisitor(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Visitor?'),
+        content: const Text('Are you sure you want to delete this visitor log? This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && context.mounted) {
+      try {
+        await DatabaseService().deleteVisitor(visitor.id!);
+        if (context.mounted) {
+          Navigator.pop(context); // Go back to logs
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Visitor deleted successfully')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting visitor: $e')),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Mock data if none provided
-    final data = visitorData ?? {
-      'name': 'John Doe',
-      'phone': '+91 98765 43210',
-      'flat': '101',
-      'purpose': 'Personal Visit',
-      'checkIn': '10:30 AM, Jan 29, 2026',
-      'checkOut': '02:00 PM, Jan 29, 2026',
-      'approvedBy': 'Resident - Mr. Kumar',
-      'notes': 'Family member visiting for lunch. Expected to stay for 3-4 hours.',
-      'status': 'CHECKED IN',
-    };
-
-    final isCheckedIn = data['status'] == 'CHECKED IN' || data['status'] == 'IN';
+    final isCheckedIn = visitor.status == 'IN';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
@@ -29,6 +55,22 @@ class VisitorDetailsScreen extends StatelessWidget {
         title: const Text('Visitor Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () {
+               // Navigate to Edit Screen (reusing AddVisitorScreen)
+               Navigator.push(
+                 context,
+                 MaterialPageRoute(builder: (context) => AddVisitorScreen(visitor: visitor)),
+               );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () => _deleteVisitor(context),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -47,7 +89,7 @@ class VisitorDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    data['name'],
+                    visitor.name,
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -56,7 +98,7 @@ class VisitorDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    data['phone'],
+                    visitor.phone,
                     style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF64748B),
@@ -103,7 +145,7 @@ class VisitorDetailsScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            data['status'],
+                            visitor.status,
                             style: TextStyle(
                               color: isCheckedIn ? Colors.white : const Color(0xFF64748B),
                               fontWeight: FontWeight.bold,
@@ -116,30 +158,34 @@ class VisitorDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  _buildDetailItem('Flat Number', data['flat'], isBold: true),
+                  _buildDetailItem('Flat Number', visitor.flatNumber, isBold: true),
                   _buildDivider(),
-                  _buildDetailItem('Purpose of Visit', data['purpose'], isBold: true),
+                  _buildDetailItem('Purpose of Visit', visitor.purpose, isBold: true),
                   _buildDivider(),
-                  _buildDetailItem('Check-In Time', data['checkIn'], isBold: true),
+                  _buildDetailItem('Check-In Time', visitor.checkInTime, isBold: true),
                   _buildDivider(),
-                  _buildDetailItem('Expected Check-Out', data['checkOut'], isBold: true),
-                  _buildDivider(),
-                  _buildDetailItem('Approved By', data['approvedBy'], isBold: true),
-                  _buildDivider(),
+                  if (visitor.checkOutTime != null) ...[
+                    _buildDetailItem('Check-Out Time', visitor.checkOutTime!, isBold: true),
+                    _buildDivider(),
+                  ],
+                  // _buildDetailItem('Approved By', data['approvedBy'], isBold: true), // Removed as not in model yet
+                  // _buildDivider(),
                    
-                  const Text(
-                    'Additional Notes',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                     data['notes'],
-                     style: const TextStyle(
-                       fontSize: 14,
-                       color: Color(0xFF334155),
-                       height: 1.5,
-                     ),
-                  ),
+                  if (visitor.notes != null && visitor.notes!.isNotEmpty) ...[
+                    const Text(
+                      'Additional Notes',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                       visitor.notes!,
+                       style: const TextStyle(
+                         fontSize: 14,
+                         color: Color(0xFF334155),
+                         height: 1.5,
+                       ),
+                    ),
+                  ],
                 ],
               ),
             ),

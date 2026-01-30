@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../models/visitor_model.dart';
+import '../../services/database_service.dart';
 
 class AddVisitorScreen extends StatefulWidget {
-  const AddVisitorScreen({super.key});
+  final Visitor? visitor;
+
+  const AddVisitorScreen({super.key, this.visitor});
 
   @override
   State<AddVisitorScreen> createState() => _AddVisitorScreenState();
@@ -28,8 +32,27 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
   @override
   void initState() {
     super.initState();
-    // Set default check-in time to now
-    _checkInController.text = _formatTime(TimeOfDay.now());
+    if (widget.visitor != null) {
+      _nameController.text = widget.visitor!.name;
+      _phoneController.text = widget.visitor!.phone;
+      _flatController.text = widget.visitor!.flatNumber;
+      _checkInController.text = widget.visitor!.checkInTime;
+      if (widget.visitor!.checkOutTime != null) {
+        _checkOutController.text = widget.visitor!.checkOutTime!;
+      }
+      if (widget.visitor!.notes != null) {
+        _notesController.text = widget.visitor!.notes!;
+      }
+      if (_visitPurposes.contains(widget.visitor!.purpose)) {
+        _selectedPurpose = widget.visitor!.purpose;
+      } else {
+         // Handle case where purpose might not be in list or add 'Other' logic
+        _selectedPurpose = 'Other'; 
+      }
+    } else {
+      // Set default check-in time to now
+      _checkInController.text = _formatTime(TimeOfDay.now());
+    }
   }
 
   String _formatTime(TimeOfDay time) {
@@ -68,11 +91,53 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
 
   void _handleSubmit() {
     if (_formKey.currentState!.validate()) {
-      // Create visitor logic here
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Visitor Added Successfully!')),
+
+      final visitorData = Visitor(
+        id: widget.visitor?.id, // Preserve ID if editing
+        name: _nameController.text,
+        phone: _phoneController.text,
+        flatNumber: _flatController.text,
+        purpose: _selectedPurpose!,
+        checkInTime: _checkInController.text,
+        checkOutTime: _checkOutController.text.isNotEmpty ? _checkOutController.text : null,
+        notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+        status: widget.visitor?.status ?? 'IN', // Preserve status if editing, else default IN
+        createdAt: widget.visitor?.createdAt ?? DateTime.now(), // Preserve creation time
       );
-      Navigator.pop(context);
+
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+
+      // Optimistic UI: Close screen immediately and run task in background
+      navigator.pop();
+
+      try {
+        if (widget.visitor == null) {
+           // Fire and forget (with error handling)
+           DatabaseService().addVisitor(visitorData).then((_) {
+             messenger.showSnackBar(
+               const SnackBar(content: Text('Visitor Added Successfully!')),
+             );
+           }).catchError((e) {
+             messenger.showSnackBar(
+               SnackBar(content: Text('Error adding visitor: $e')),
+             );
+           });
+        } else {
+           DatabaseService().updateVisitor(visitorData).then((_) {
+             messenger.showSnackBar(
+               const SnackBar(content: Text('Visitor Updated Successfully!')),
+             );
+           }).catchError((e) {
+             messenger.showSnackBar(
+               SnackBar(content: Text('Error updating visitor: $e')),
+             );
+           });
+        }
+      } catch (e) {
+        // Fallback catch (though async errors are caught above)
+        print("Error in submit: $e");
+      }
     }
   }
 
@@ -81,9 +146,9 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Add Visitor',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Text(
+          widget.visitor == null ? 'Add Visitor' : 'Edit Visitor',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF1E293B), // Dark Navy
         iconTheme: const IconThemeData(color: Colors.white),
@@ -250,11 +315,11 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('ADD VISITOR', style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  )),
+                  child: Text(widget.visitor == null ? 'ADD VISITOR' : 'UPDATE VISITOR', style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        )),
                 ),
               ),
               const SizedBox(height: 20),

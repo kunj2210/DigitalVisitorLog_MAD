@@ -28,22 +28,24 @@ class AuthService {
 
       debugPrint('AuthService: User created: ${credential.user?.uid}');
 
-      // 2. Create User Profile in Firestore (Optional/Fail-Safe)
+      // 2. Create User Profile and Update Display Name in Parallel
       if (credential.user != null) {
         try {
-           await _firestore.collection('users').doc(credential.user!.uid).set({
-             'uid': credential.user!.uid,
-             'name': name,
-             'email': email,
-             'role': 'user',
-             'createdAt': FieldValue.serverTimestamp(),
-           }).timeout(const Duration(seconds: 10));
+          await Future.wait([
+            _firestore.collection('users').doc(credential.user!.uid).set({
+              'uid': credential.user!.uid,
+              'name': name,
+              'email': email,
+              'role': 'user',
+              'createdAt': FieldValue.serverTimestamp(),
+            }).timeout(const Duration(seconds: 10)),
+            
+            credential.user!.updateDisplayName(name).timeout(const Duration(seconds: 5)),
+          ]);
            
-           // Update the display name in the Auth profile itself as a backup
-           await credential.user!.updateDisplayName(name).timeout(const Duration(seconds: 5));
-           debugPrint('AuthService: Firestore profile created.');
+           debugPrint('AuthService: Firestore profile and Auth DisplayName updated.');
         } catch (e) {
-           debugPrint('AuthService: Firestore/Profile update failed (Non-fatal): $e');
+           debugPrint('AuthService: Profile sync failed (Non-fatal): $e');
            // We do not rethrow here so the user is still logged in even if profile sync fails
         }
       }

@@ -5,6 +5,9 @@ import '../login/login_screen.dart';
 import 'personal_info_screen.dart';
 import 'change_password_screen.dart';
 import 'settings_screens.dart';
+import 'security_guard_info_screen.dart';
+import '../../services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,8 +16,41 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
+// ... (existing imports, but make sure to not duplicate)
+
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedIndex = 2; // 'Profile' is index 2
+  Map<String, dynamic>? _userData;
+  User? _currentUser;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    setState(() => _currentUser = user);
+
+    if (user != null) {
+      try {
+        final data = await AuthService().getCurrentUserData();
+        if (mounted) {
+          setState(() {
+            _userData = data;
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        debugPrint('Error fetching profile: $e');
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } else {
+       if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   void _handleLogout() {
     showDialog(
@@ -50,6 +86,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Logic to determine display name
+    // Prefer Firestore 'name', then Auth 'displayName', then 'User'
+    final displayName = _userData?['name'] ?? _currentUser?.displayName ?? 'User';
+    final displayEmail = _userData?['email'] ?? _currentUser?.email ?? 'No Email';
+    // Role from firestore, default to 'Security Guard' if not present or just 'User'
+    // Since we save 'role': 'user' in signup, checking that. 
+    // If it is 'user', let's display 'Staff Member' or 'Resident' to look better than just 'user'.
+    String displayRole = _userData?['role'] == 'user' ? 'Staff Member' : 'Security Guard';
+    
+    // Check if we have dynamic role
+    if (_userData != null && _userData!.containsKey('role')) {
+       final r = _userData!['role'].toString();
+       if (r.toLowerCase() == 'admin') displayRole = 'Administrator';
+       else if (r.toLowerCase() == 'guard') displayRole = 'Security Guard';
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       body: Column(
@@ -83,35 +135,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                  const SizedBox(height: 32),
                  // Avatar
                  CircleAvatar(
-                   radius: 40,
+                   radius: 50,
                    backgroundColor: Colors.white.withOpacity(0.2),
-                   child: const Icon(Icons.person, size: 48, color: Colors.white),
+                   child: Text(
+                     displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                     style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
+                   ),
                  ),
                  const SizedBox(height: 16),
-                 const Text(
-                   'Ramesh Kumar',
-                   style: TextStyle(
-                     color: Colors.white,
-                     fontSize: 22,
-                     fontWeight: FontWeight.bold,
-                   ),
-                 ),
-                 const SizedBox(height: 4),
-                 Text(
-                   'Security Guard',
-                   style: TextStyle(
-                     color: Colors.white.withOpacity(0.7),
-                     fontSize: 14,
-                   ),
-                 ),
-                 const SizedBox(height: 4),
-                 Text(
-                   '+91 98765 43210',
-                   style: TextStyle(
-                     color: Colors.white.withOpacity(0.7),
-                     fontSize: 14,
-                   ),
-                 ),
               ],
             ),
           ),
@@ -122,11 +153,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 _buildSettingsTile(
                   icon: Icons.assignment_ind,
-                  title: 'Personal Information',
+                  title: 'Personal Information', // Restored
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const PersonalInfoScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildSettingsTile(
+                  icon: Icons.security,
+                  title: 'Security Guard Info',
+                  onTap: () {
+                     Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SecurityGuardInfoScreen()),
                     );
                   },
                 ),

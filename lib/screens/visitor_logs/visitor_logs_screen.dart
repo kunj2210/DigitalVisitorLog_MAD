@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../dashboard/dashboard_screen.dart';
+import '../../models/visitor_model.dart';
+import '../../services/database_service.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../visitor_details/visitor_details_screen.dart';
 import '../profile/profile_screen.dart';
@@ -17,14 +18,7 @@ class _VisitorLogsScreenState extends State<VisitorLogsScreen> {
   String _sortOrder = 'Newest First';
   DateTime _selectedDate = DateTime.now();
 
-  List<Map<String, dynamic>> _logs = [
-    {'name': 'John Doe', 'flat': '101', 'time': '10:30 AM', 'status': 'IN'},
-    {'name': 'Jane Smith', 'flat': '205', 'time': '09:45 AM', 'status': 'OUT'},
-    {'name': 'Mike Johnson', 'flat': '302', 'time': '11:15 AM', 'status': 'IN'},
-    {'name': 'Sarah Williams', 'flat': '108', 'time': '08:30 AM', 'status': 'OUT'},
-    {'name': 'David Brown', 'flat': '410', 'time': '12:00 PM', 'status': 'IN'},
-    {'name': 'Emily Davis', 'flat': '156', 'time': '01:45 PM', 'status': 'IN'},
-  ];
+ // List<Map<String, dynamic>> _logs removed in favor of StreamBuilder
 
   String _formatDate(DateTime date) {
     // Simple formatter to avoid intl dependency
@@ -106,12 +100,8 @@ class _VisitorLogsScreenState extends State<VisitorLogsScreen> {
         setState(() {
           _sortOrder = title;
           if (title == 'Name (A-Z)') {
-             _logs.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
-          } else {
-             // For mock data, just reverse to toggle between Newest/Oldest
-             // assuming initial state is Newest.
-             // Ideally we parse time, but this suffices for demo.
-             _logs = _logs.reversed.toList();
+             // Trigger rebuild to update sort order
+             // Actual sorting happens in the StreamBuilder based on _sortOrder
           }
         });
         Navigator.pop(context);
@@ -210,14 +200,17 @@ class _VisitorLogsScreenState extends State<VisitorLogsScreen> {
                 ),
                 const SizedBox(height: 20),
                 // Filters
-                Row(
-                  children: [
-                    _buildFilterTab('All'),
-                    const SizedBox(width: 12),
-                    _buildFilterTab('Check-In'),
-                    const SizedBox(width: 12),
-                    _buildFilterTab('Check-Out'),
-                  ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterTab('All'),
+                      const SizedBox(width: 12),
+                      _buildFilterTab('Check-In'),
+                      const SizedBox(width: 12),
+                      _buildFilterTab('Check-Out'),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -273,83 +266,147 @@ class _VisitorLogsScreenState extends State<VisitorLogsScreen> {
 
           // List List
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(20),
-              itemCount: _logs.length,
-              itemBuilder: (context, index) {
-                final log = _logs[index];
-                if (_selectedFilter != 'All' && 
-                    ((_selectedFilter == 'Check-In' && log['status'] != 'IN') ||
-                     (_selectedFilter == 'Check-Out' && log['status'] != 'OUT'))) {
-                  return const SizedBox.shrink();
+            child: StreamBuilder<List<Visitor>>(
+              stream: DatabaseService().getVisitors(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
                 }
-                
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => VisitorDetailsScreen(visitorData: log),
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('No visitors found'));
+                }
+
+                final allVisitors = snapshot.data!;
+                // Apply filters locally for now (can be moved to query level for efficiency)
+                final filteredVisitors = allVisitors.where((visitor) {
+                  if (_selectedFilter == 'All') return true;
+                  if (_selectedFilter == 'Check-In' && visitor.status == 'IN') return true;
+                  if (_selectedFilter == 'Check-Out' && visitor.status == 'OUT') return true;
+                  return false;
+                }).toList();
+
+                 // Apply Sorting
+                if (_sortOrder == 'Newest First') {
+                  // Already sorted by query
+                } else if (_sortOrder == 'Oldest First') {
+                   filteredVisitors.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+                } else if (_sortOrder == 'Name (A-Z)') {
+                   filteredVisitors.sort((a, b) => a.name.compareTo(b.name));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: filteredVisitors.length,
+                  itemBuilder: (context, index) {
+                    final visitor = filteredVisitors[index];
+                    
+                    return Dismissible(
+                      key: Key(visitor.id ?? index.toString()),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.delete, color: Colors.white),
                       ),
-                    );
-                  },
-                  child: Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: const Color(0xFFF1F5F9),
-                        radius: 24,
-                        child: const Icon(Icons.person, color: Color(0xFF94A3B8)),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      confirmDismiss: (direction) async {
+                        return await showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Visitor?'),
+                            content: const Text('Are you sure you want to delete this log?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      onDismissed: (direction) {
+                        if (visitor.id != null) {
+                          DatabaseService().deleteVisitor(visitor.id!);
+                        }
+                      },
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => VisitorDetailsScreen(visitor: visitor),
+                            ),
+                          );
+                        },
+                        child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
                           children: [
-                            Text(
-                              log['name'],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                                color: Color(0xFF1E293B),
+                            CircleAvatar(
+                              backgroundColor: const Color(0xFFF1F5F9),
+                              radius: 24,
+                              child: const Icon(Icons.person, color: Color(0xFF94A3B8)),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    visitor.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                      color: Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Flat ${visitor.flatNumber} • ${visitor.checkInTime}',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Flat ${log['flat']} • ${log['time']}',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF64748B),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: visitor.status == 'IN' ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                visitor.status,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: visitor.status == 'IN' ? Colors.white : const Color(0xFF1E293B),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: log['status'] == 'IN' ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          log['status'],
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: log['status'] == 'IN' ? Colors.white : const Color(0xFF1E293B),
-                          ),
                         ),
                       ),
-                    ],
-                  ),
-                  ),
+                    );
+                  },
                 );
               },
             ),
