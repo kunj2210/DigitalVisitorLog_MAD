@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1047166827214",
+    "project_id": "digitalvisitorlog-bd3a4",
+    "storage_bucket": "digitalvisitorlog-bd3a4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1047166827214:android:7ba6c0fc01c95c11b66e9f",
+        "android_client_info": {
+          "package_name": "com.example.visitor_log_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGuVuNds3UodxNLYrZQ1qvyhBqqaWBZe8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
