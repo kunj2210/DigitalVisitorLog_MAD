@@ -20,6 +20,9 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
   final _checkInController = TextEditingController();
   final _checkOutController = TextEditingController();
   final _notesController = TextEditingController();
+  final _vehicleNoController = TextEditingController();
+  bool _hasVehicle = false;
+  bool _agreedToTerms = false;
   String? _selectedPurpose;
 
   final List<String> _visitPurposes = [
@@ -48,6 +51,10 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
       } else {
          // Handle case where purpose might not be in list or add 'Other' logic
         _selectedPurpose = 'Other'; 
+      }
+      _hasVehicle = widget.visitor!.hasVehicle;
+      if (widget.visitor!.vehicleNumber != null) {
+        _vehicleNoController.text = widget.visitor!.vehicleNumber!;
       }
     } else {
       // Set default check-in time to now
@@ -90,6 +97,13 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
   }
 
   void _handleSubmit() {
+    if (!_agreedToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please verify the details and check the box.')),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
 
       final visitorData = Visitor(
@@ -103,6 +117,8 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
         notes: _notesController.text.isNotEmpty ? _notesController.text : null,
         status: widget.visitor?.status ?? 'IN', // Preserve status if editing, else default IN
         createdAt: widget.visitor?.createdAt ?? DateTime.now(), // Preserve creation time
+        hasVehicle: _hasVehicle,
+        vehicleNumber: _hasVehicle ? _vehicleNoController.text : null,
       );
 
       final messenger = ScaffoldMessenger.of(context);
@@ -273,6 +289,50 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
+              ),
+              const SizedBox(height: 16),
+
+              // Vehicle Information (Toggle Switch)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Has Vehicle?',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+                ),
+                value: _hasVehicle,
+                onChanged: (bool value) {
+                  setState(() {
+                    _hasVehicle = value;
+                  });
+                },
+                activeColor: const Color(0xFF1E293B),
+              ),
+              if (_hasVehicle) ...[
+                const SizedBox(height: 8),
+                CustomTextField(
+                  controller: _vehicleNoController,
+                  label: 'Vehicle Number',
+                  hintText: 'e.g. GJ-01-AB-1234',
+                  validator: (val) => _hasVehicle && (val == null || val.isEmpty) ? 'Required' : null,
+                ),
+              ],
+              const SizedBox(height: 16),
+
+              // Terms (Checkbox)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text(
+                  'I verify that the above information is correct and the ID proof has been checked.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+                value: _agreedToTerms,
+                onChanged: (bool? value) {
+                  setState(() {
+                    _agreedToTerms = value ?? false;
+                  });
+                },
+                activeColor: const Color(0xFF1E293B),
               ),
               const SizedBox(height: 16),
 

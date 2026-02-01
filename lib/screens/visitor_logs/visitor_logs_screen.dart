@@ -4,6 +4,7 @@ import '../../services/database_service.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../visitor_details/visitor_details_screen.dart';
 import '../profile/profile_screen.dart';
+import '../add_visitor/add_visitor_screen.dart';
 
 class VisitorLogsScreen extends StatefulWidget {
   const VisitorLogsScreen({super.key});
@@ -412,6 +413,16 @@ class _VisitorLogsScreenState extends State<VisitorLogsScreen> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddVisitorScreen()),
+          );
+        },
+        backgroundColor: const Color(0xFF1E293B),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(

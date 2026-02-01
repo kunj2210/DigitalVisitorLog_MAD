@@ -11,6 +11,8 @@ class Visitor {
   final String? notes; // Optional
   final String status; // 'IN' or 'OUT'
   final DateTime createdAt;
+  final bool hasVehicle;
+  final String? vehicleNumber;
 
   Visitor({
     this.id,
@@ -23,6 +25,8 @@ class Visitor {
     this.notes,
     required this.status,
     required this.createdAt,
+    this.hasVehicle = false,
+    this.vehicleNumber,
   });
 
   // Convert Visitor to Map for Firestore
@@ -37,6 +41,8 @@ class Visitor {
       'notes': notes,
       'status': status,
       'createdAt': Timestamp.fromDate(createdAt),
+      'hasVehicle': hasVehicle,
+      'vehicleNumber': vehicleNumber,
     };
   }
 
@@ -54,6 +60,8 @@ class Visitor {
       notes: data['notes'],
       status: data['status'] ?? 'IN',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      hasVehicle: data['hasVehicle'] ?? false,
+      vehicleNumber: data['vehicleNumber'],
     );
   }
 }
