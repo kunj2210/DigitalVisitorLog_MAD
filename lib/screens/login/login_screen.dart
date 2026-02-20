@@ -104,16 +104,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Spacer(),
                     // Logo
                     Container(
-                      width: 80,
-                      height: 80,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE2E8F0),
+                        color: Colors.transparent,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(
-                        Icons.apartment_rounded,
-                        size: 40,
-                        color: Color(0xFF475569),
+                      child: Image.asset(
+                        'assets/images/app_logo.png',
+                        width: 80,
+                        height: 80,
                       ),
                     ),
                     const SizedBox(height: 32),
