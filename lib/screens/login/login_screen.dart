@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import '../../providers/app_state_provider.dart';
 import '../../widgets/custom_text_field.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../register/register_screen.dart';
@@ -51,6 +53,8 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text,
         );
         if (mounted) {
+          // Lab 8: Notify Provider that user has logged in → updates global state
+          context.read<AppStateProvider>().onUserLoggedIn();
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => const DashboardScreen()),
           );
