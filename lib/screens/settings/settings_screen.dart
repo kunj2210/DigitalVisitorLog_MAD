@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state_provider.dart';
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
 import '../login/login_screen.dart';
 
 /// Settings Screen
@@ -150,6 +151,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           value: _biometricEnabled,
                           activeColor: const Color(0xFF1E293B),
                           onChanged: (val) => setState(() => _biometricEnabled = val),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // --- Notifications Lab Testing ---
+                  _buildSectionLabel('Notifications Lab Testing'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.notifications_active, color: Color(0xFF475569)),
+                          title: const Text('Test Local Notification', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF1E293B))),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            NotificationService().showInstantNotification(
+                              'Lab 10 Local Alert', 
+                              'This is your instant notification message!',
+                              payload: '/dashboard'
+                            );
+                          },
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          leading: const Icon(Icons.schedule, color: Color(0xFF475569)),
+                          title: const Text('Test Scheduled Notification', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF1E293B))),
+                          subtitle: const Text('Triggers in 5 seconds', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            NotificationService().scheduleNotification(
+                              1, 
+                              'Scheduled Reminder', 
+                              'Your task is due now!', 
+                              DateTime.now().add(const Duration(seconds: 5)),
+                              payload: '/logs'
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Notification scheduled in 5 seconds')),
+                            );
+                          },
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          leading: const Icon(Icons.token, color: Color(0xFF475569)),
+                          title: const Text('Show FCM Token', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF1E293B))),
+                          trailing: const Icon(Icons.copy),
+                          onTap: () async {
+                            String? token = await NotificationService().getFCMToken();
+                            print('FCM Token: $token');
+                            if (mounted) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('FCM Token'),
+                                  content: SelectableText(token ?? 'Failed to get token'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Close'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          },
                         ),
                       ],
                     ),

@@ -11,13 +11,49 @@ import 'screens/add_visitor/add_visitor_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/api_data/api_data_screen.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'services/notification_service.dart';
+import 'dart:developer'; // For better logging
+
+import 'firebase_options.dart';
+
+// Top-level function for handling background messages
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('Background message received: ${message.messageId}');
+  
+  // If the message contains a notification, show it manually if needed
+  // (FCM usually shows it if it has a 'notification' property, but for consistency)
+  if (message.notification != null) {
+    await NotificationService().init(); // Ensure initialized in the new isolate
+    await NotificationService().showInstantNotification(
+      message.notification?.title ?? 'New Message',
+      message.notification?.body ?? '',
+    );
+  }
+}
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    
+    // Request permission (required for Android 13+)
+    await FirebaseMessaging.instance.requestPermission();
+    
+    // Retrieve the FCM token
+    String? token = await FirebaseMessaging.instance.getToken();
+    
+    // Print to the debug console
+    log("FCM TOKEN: $token");
+    
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    await NotificationService().init();
   } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
+    debugPrint('Firebase/Notification initialization failed: $e');
   }
   runApp(const VisitorLogApp());
 }
@@ -31,6 +67,7 @@ class VisitorLogApp extends StatelessWidget {
     return ChangeNotifierProvider<AppStateProvider>(
       create: (_) => AppStateProvider(),
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         title: 'Digital Visitor Log',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
