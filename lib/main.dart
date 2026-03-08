@@ -10,6 +10,7 @@ import 'screens/visitor_logs/visitor_logs_screen.dart';
 import 'screens/add_visitor/add_visitor_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/api_data/api_data_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -108,6 +109,7 @@ class VisitorLogApp extends StatelessWidget {
           '/add-visitor': (context) => const AddVisitorScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/settings': (context) => const SettingsScreen(),
+          '/api-data': (context) => const ApiDataScreen(),
         },
       ),
     );

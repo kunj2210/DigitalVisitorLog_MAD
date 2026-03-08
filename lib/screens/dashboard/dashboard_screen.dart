@@ -10,6 +10,7 @@ import '../visitor_logs/visitor_logs_screen.dart';
 import '../profile/profile_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../visitor_details/visitor_details_screen.dart';
+import '../api_data/api_data_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -140,9 +141,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const SizedBox(width: 16),
                           Expanded(
                             child: ActionCard(
-                              icon: Icons.qr_code_scanner,
-                              label: 'QR Scan',
-                              onTap: () {},
+                              icon: Icons.cloud_download_outlined,
+                              label: 'API Data',
+                              onTap: () {
+                                Navigator.pushNamed(context, '/api-data');
+                              },
                               isPrimary: false,
                             ),
                           ),
