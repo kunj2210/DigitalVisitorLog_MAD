@@ -21,7 +21,7 @@ import 'firebase_options.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print('Background message received: ${message.messageId}');
+  debugPrint('Background message received: ${message.messageId}');
   
   // If the message contains a notification, show it manually if needed
   // (FCM usually shows it if it has a 'notification' property, but for consistency)

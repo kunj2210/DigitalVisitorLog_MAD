@@ -14,7 +14,7 @@ class VisitorLogsScreen extends StatefulWidget {
 }
 
 class _VisitorLogsScreenState extends State<VisitorLogsScreen> {
-  int _selectedIndex = 1; // 'Logs' is index 1
+  final int _selectedIndex = 1; // 'Logs' is index 1
   String _selectedFilter = 'All';
   String _sortOrder = 'Newest First';
   DateTime _selectedDate = DateTime.now();
@@ -163,7 +163,7 @@ class _VisitorLogsScreenState extends State<VisitorLogsScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.search, color: Colors.blueAccent, size: 20),
@@ -174,7 +174,7 @@ class _VisitorLogsScreenState extends State<VisitorLogsScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.settings, color: Colors.white70, size: 20),
@@ -188,9 +188,9 @@ class _VisitorLogsScreenState extends State<VisitorLogsScreen> {
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'search by name, flat, phone...',
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
+                    fillColor: Colors.white.withValues(alpha: 0.1),
                     prefixIcon: Icon(Icons.search, color: Colors.blueAccent),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -467,7 +467,7 @@ class _VisitorLogsScreenState extends State<VisitorLogsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.white.withOpacity(0.1),
+          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(

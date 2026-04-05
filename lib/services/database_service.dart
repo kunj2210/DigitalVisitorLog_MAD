@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/visitor_model.dart';
 
 class DatabaseService {
@@ -10,7 +11,7 @@ class DatabaseService {
     try {
       await _visitorsCollection.add(visitor.toMap());
     } catch (e) {
-      print("Error adding visitor: $e");
+      debugPrint("Error adding visitor: $e");
       rethrow;
     }
   }
@@ -30,7 +31,7 @@ class DatabaseService {
     try {
       await _visitorsCollection.doc(visitor.id).update(visitor.toMap());
     } catch (e) {
-      print("Error updating visitor: $e");
+      debugPrint("Error updating visitor: $e");
       rethrow;
     }
   }
@@ -40,7 +41,7 @@ class DatabaseService {
     try {
       await _visitorsCollection.doc(id).delete();
     } catch (e) {
-      print("Error deleting visitor: $e");
+      debugPrint("Error deleting visitor: $e");
       rethrow;
     }
   }

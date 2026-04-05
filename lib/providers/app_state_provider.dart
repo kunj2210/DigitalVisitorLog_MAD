@@ -45,6 +45,15 @@ class AppStateProvider extends ChangeNotifier {
     return _visitors.length;
   }
 
+  /// Calculates statistics for visit purposes to be used in charts.
+  Map<String, int> get visitPurposeStats {
+    final stats = <String, int>{};
+    for (var visitor in _visitors) {
+      stats[visitor.purpose] = (stats[visitor.purpose] ?? 0) + 1;
+    }
+    return stats;
+  }
+
   /// Returns the 3 most recent visitors for the Dashboard preview.
   List<Visitor> get recentVisitors => _visitors.take(3).toList();
 

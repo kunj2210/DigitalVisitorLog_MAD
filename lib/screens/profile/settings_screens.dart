@@ -63,12 +63,17 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
         itemCount: _languages.length,
         itemBuilder: (context, index) {
           final lang = _languages[index];
+          // ignore: deprecated_member_use
           return RadioListTile<String>(
             title: Text(lang),
             value: lang,
+            // ignore: deprecated_member_use
             groupValue: _selectedLanguage,
+            // ignore: deprecated_member_use
             onChanged: (val) {
-              setState(() => _selectedLanguage = val!);
+              if (val != null) {
+                setState(() => _selectedLanguage = val);
+              }
             },
           );
         },

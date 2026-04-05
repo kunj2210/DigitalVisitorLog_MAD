@@ -118,7 +118,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w500)),
                           subtitle: const Text('Toggle app theme', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                           value: _darkModeEnabled,
-                          activeColor: const Color(0xFF1E293B),
+                          activeThumbColor: const Color(0xFF1E293B),
                           onChanged: (val) {
                             // Lab 8: setState() for local state management
                             setState(() => _darkModeEnabled = val);
@@ -138,7 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w500)),
                           subtitle: const Text('Visitor alerts', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                           value: _notificationsEnabled,
-                          activeColor: const Color(0xFF1E293B),
+                          activeThumbColor: const Color(0xFF1E293B),
                           onChanged: (val) => setState(() => _notificationsEnabled = val),
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
@@ -149,7 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w500)),
                           subtitle: const Text('Use fingerprint to login', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                           value: _biometricEnabled,
-                          activeColor: const Color(0xFF1E293B),
+                          activeThumbColor: const Color(0xFF1E293B),
                           onChanged: (val) => setState(() => _biometricEnabled = val),
                         ),
                       ],
@@ -205,9 +205,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           title: const Text('Show FCM Token', style: TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF1E293B))),
                           trailing: const Icon(Icons.copy),
                           onTap: () async {
-                            String? token = await NotificationService().getFCMToken();
-                            print('FCM Token: $token');
-                            if (mounted) {
+                            final token = await NotificationService().getFCMToken();
+                            debugPrint('FCM Token: $token');
+                            if (context.mounted) {
                               showDialog(
                                 context: context,
                                 builder: (context) => AlertDialog(

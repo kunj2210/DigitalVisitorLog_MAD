@@ -52,39 +52,39 @@ class _LoginScreenState extends State<LoginScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
-        if (mounted) {
-          // Lab 8: Notify Provider that user has logged in → updates global state
-          context.read<AppStateProvider>().onUserLoggedIn();
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const DashboardScreen()),
-          );
-        }
+        if (!mounted) return;
+        
+        final navigator = Navigator.of(context);
+        final provider = Provider.of<AppStateProvider>(context, listen: false);
+        
+        provider.onUserLoggedIn();
+        navigator.pushReplacement(
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        );
       } on FirebaseAuthException catch (e) {
-        if (mounted) {
-           setState(() {
-             // Specific Error Mapping
-             if (e.code == 'user-not-found' || e.code == 'invalid-email') {
-               _emailError = 'Invalid email address';
-             } else if (e.code == 'wrong-password') {
-               _passwordError = 'Invalid password';
-             } else if (e.code == 'invalid-credential') {
-               // Newer firebase version wraps both
-                _emailError = 'Invalid email address';
-                _passwordError = 'Invalid password';
-             } else {
-               // Fallback Generic SnackBar
-               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Login Failed: ${e.message ?? e.toString()}')),
-              );
-             }
-           });
-        }
-      } catch (e) {
-        if (mounted) {
+      if (!mounted) return;
+      setState(() {
+        // Specific Error Mapping
+        if (e.code == 'user-not-found' || e.code == 'invalid-email') {
+          _emailError = 'Invalid email address';
+        } else if (e.code == 'wrong-password') {
+          _passwordError = 'Invalid password';
+        } else if (e.code == 'invalid-credential') {
+          // Newer firebase version wraps both
+          _emailError = 'Invalid email address';
+          _passwordError = 'Invalid password';
+        } else {
+          // Fallback Generic SnackBar
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login Failed: ${e.toString()}')),
+            SnackBar(content: Text('Login Failed: ${e.message ?? e.toString()}')),
           );
         }
+      });
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login Failed: ${e.toString()}')),
+        );
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }

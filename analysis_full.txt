@@ -1,0 +1,29 @@
+﻿Analyzing DigitalVisitorLog_MAD...                              
+
+   info - Don't use 'BuildContext's across async gaps - lib\screens\add_visitor\add_visitor_screen.dart:123:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\add_visitor\add_visitor_screen.dart:197:48 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\add_visitor\add_visitor_screen.dart:198:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\screens\add_visitor\add_visitor_screen.dart:217:30 - use_build_context_synchronously
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\screens\add_visitor\add_visitor_screen.dart:274:17 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\screens\add_visitor\add_visitor_screen.dart:371:17 - deprecated_member_use
+warning - Unused import: '../api_data/api_data_screen.dart' - lib\screens\dashboard\dashboard_screen.dart:13:8 - unused_import
+  error - Undefined name '_currentUser' - lib\screens\profile\profile_screen.dart:32:20 - undefined_identifier
+  error - Undefined name '_userData' - lib\screens\profile\profile_screen.dart:39:13 - undefined_identifier
+  error - Undefined name '_isLoading' - lib\screens\profile\profile_screen.dart:40:13 - undefined_identifier
+  error - Undefined name '_isLoading' - lib\screens\profile\profile_screen.dart:45:37 - undefined_identifier
+  error - Undefined name '_isLoading' - lib\screens\profile\profile_screen.dart:48:36 - undefined_identifier
+  error - Undefined name '_userData' - lib\screens\profile\profile_screen.dart:83:25 - undefined_identifier
+  error - Undefined name '_currentUser' - lib\screens\profile\profile_screen.dart:83:47 - undefined_identifier
+warning - The value of the local variable 'displayEmail' isn't used - lib\screens\profile\profile_screen.dart:84:11 - unused_local_variable
+  error - Undefined name '_userData' - lib\screens\profile\profile_screen.dart:84:26 - undefined_identifier
+  error - Undefined name '_currentUser' - lib\screens\profile\profile_screen.dart:84:49 - undefined_identifier
+warning - The value of the local variable 'displayRole' isn't used - lib\screens\profile\profile_screen.dart:88:12 - unused_local_variable
+  error - Undefined name '_userData' - lib\screens\profile\profile_screen.dart:89:9 - undefined_identifier
+  error - Undefined name '_userData' - lib\screens\profile\profile_screen.dart:94:9 - undefined_identifier
+  error - Undefined name '_userData' - lib\screens\profile\profile_screen.dart:94:30 - undefined_identifier
+  error - Undefined name '_userData' - lib\screens\profile\profile_screen.dart:95:18 - undefined_identifier
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\profile\settings_screens.dart:69:13 - deprecated_member_use
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\screens\profile\settings_screens.dart:70:13 - deprecated_member_use
+warning - Unused import: '../login/login_screen.dart' - lib\screens\register\register_screen.dart:3:8 - unused_import
+   info - The private field _selectedIndex could be 'final' - lib\screens\visitor_logs\visitor_logs_screen.dart:17:7 - prefer_final_fields
+

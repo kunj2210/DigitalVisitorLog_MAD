@@ -13,6 +13,7 @@ class Visitor {
   final DateTime createdAt;
   final bool hasVehicle;
   final String? vehicleNumber;
+  final String? imageUrl; // NEW: Photo of the visitor
 
   Visitor({
     this.id,
@@ -27,6 +28,7 @@ class Visitor {
     required this.createdAt,
     this.hasVehicle = false,
     this.vehicleNumber,
+    this.imageUrl,
   });
 
   // Convert Visitor to Map for Firestore
@@ -43,6 +45,7 @@ class Visitor {
       'createdAt': Timestamp.fromDate(createdAt),
       'hasVehicle': hasVehicle,
       'vehicleNumber': vehicleNumber,
+      'imageUrl': imageUrl,
     };
   }
 
@@ -62,6 +65,7 @@ class Visitor {
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       hasVehicle: data['hasVehicle'] ?? false,
       vehicleNumber: data['vehicleNumber'],
+      imageUrl: data['imageUrl'],
     );
   }
 }

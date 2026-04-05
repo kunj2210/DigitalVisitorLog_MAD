@@ -19,9 +19,9 @@ class ProfileScreen extends StatefulWidget {
 // ... (existing imports, but make sure to not duplicate)
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int _selectedIndex = 2; // 'Profile' is index 2
-  Map<String, dynamic>? _userData;
+  final int _selectedIndex = 2; // 'Profile' is index 2
   User? _currentUser;
+  Map<String, dynamic>? _userData;
   bool _isLoading = true;
 
   @override
@@ -78,28 +78,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showFeatureNotAvailable(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature feature coming soon!')),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     // Logic to determine display name
     // Prefer Firestore 'name', then Auth 'displayName', then 'User'
     final displayName = _userData?['name'] ?? _currentUser?.displayName ?? 'User';
-    final displayEmail = _userData?['email'] ?? _currentUser?.email ?? 'No Email';
-    // Role from firestore, default to 'Security Guard' if not present or just 'User'
-    // Since we save 'role': 'user' in signup, checking that. 
-    // If it is 'user', let's display 'Staff Member' or 'Resident' to look better than just 'user'.
-    String displayRole = _userData?['role'] == 'user' ? 'Staff Member' : 'Security Guard';
+    // role calculation
+    String displayRole = 'Security Guard';
+    if (_userData?['role'] == 'user') {
+      displayRole = 'Staff Member';
+    }
     
     // Check if we have dynamic role
     if (_userData != null && _userData!.containsKey('role')) {
        final r = _userData!['role'].toString();
-       if (r.toLowerCase() == 'admin') displayRole = 'Administrator';
-       else if (r.toLowerCase() == 'guard') displayRole = 'Security Guard';
+       if (r.toLowerCase() == 'admin') {
+         displayRole = 'Administrator';
+       } else if (r.toLowerCase() == 'guard') {
+         displayRole = 'Security Guard';
+       }
+    }
+
+    // Actually use the variables in the return widget
+
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
@@ -136,13 +142,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                  // Avatar
                  CircleAvatar(
                    radius: 50,
-                   backgroundColor: Colors.white.withOpacity(0.2),
+                   backgroundColor: Colors.white.withValues(alpha: 0.2),
                    child: Text(
                      displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
                      style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.white),
                    ),
                  ),
                  const SizedBox(height: 16),
+                  Text(
+                    displayName,
+                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    _userData?['email'] ?? _currentUser?.email ?? 'No Email',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      displayRole.toUpperCase(),
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -301,7 +327,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: (iconColor ?? const Color(0xFF64748B)).withOpacity(0.1),
+            color: (iconColor ?? const Color(0xFF64748B)).withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: iconColor ?? const Color(0xFF64748B), size: 20),

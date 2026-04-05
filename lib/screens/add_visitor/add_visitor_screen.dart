@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../services/storage_service.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../models/visitor_model.dart';
 import '../../services/database_service.dart';
@@ -24,6 +27,12 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
   bool _hasVehicle = false;
   bool _agreedToTerms = false;
   String? _selectedPurpose;
+  
+  // Photo Upload related
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
+  bool _isUploading = false;
+  String? _existingImageUrl;
 
   final List<String> _visitPurposes = [
     'Delivery',
@@ -40,6 +49,7 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
       _phoneController.text = widget.visitor!.phone;
       _flatController.text = widget.visitor!.flatNumber;
       _checkInController.text = widget.visitor!.checkInTime;
+      _existingImageUrl = widget.visitor!.imageUrl;
       if (widget.visitor!.checkOutTime != null) {
         _checkOutController.text = widget.visitor!.checkOutTime!;
       }
@@ -49,7 +59,6 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
       if (_visitPurposes.contains(widget.visitor!.purpose)) {
         _selectedPurpose = widget.visitor!.purpose;
       } else {
-         // Handle case where purpose might not be in list or add 'Other' logic
         _selectedPurpose = 'Other'; 
       }
       _hasVehicle = widget.visitor!.hasVehicle;
@@ -57,15 +66,25 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
         _vehicleNoController.text = widget.visitor!.vehicleNumber!;
       }
     } else {
-      // Set default check-in time to now
       _checkInController.text = _formatTime(TimeOfDay.now());
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _flatController.dispose();
+    _checkInController.dispose();
+    _checkOutController.dispose();
+    _notesController.dispose();
+    _vehicleNoController.dispose();
+    super.dispose();
   }
 
   String _formatTime(TimeOfDay time) {
     final now = DateTime.now();
     final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
-    // Simple manual formatting to avoid intl dependency for now
     final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
     final period = dt.hour >= 12 ? 'PM' : 'AM';
     final minute = dt.minute.toString().padLeft(2, '0');
@@ -96,7 +115,58 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
     }
   }
 
-  void _handleSubmit() {
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1080,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
+      );
+    }
+  }
+
+  void _showImageSourceActionSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery'),
+                onTap: () {
+                  _pickImage(ImageSource.gallery);
+                  Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Camera'),
+                onTap: () {
+                  _pickImage(ImageSource.camera);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleSubmit() async {
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please verify the details and check the box.')),
@@ -105,54 +175,61 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
     }
 
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isUploading = true;
+      });
 
-      final visitorData = Visitor(
-        id: widget.visitor?.id, // Preserve ID if editing
-        name: _nameController.text,
-        phone: _phoneController.text,
-        flatNumber: _flatController.text,
-        purpose: _selectedPurpose!,
-        checkInTime: _checkInController.text,
-        checkOutTime: _checkOutController.text.isNotEmpty ? _checkOutController.text : null,
-        notes: _notesController.text.isNotEmpty ? _notesController.text : null,
-        status: widget.visitor?.status ?? 'IN', // Preserve status if editing, else default IN
-        createdAt: widget.visitor?.createdAt ?? DateTime.now(), // Preserve creation time
-        hasVehicle: _hasVehicle,
-        vehicleNumber: _hasVehicle ? _vehicleNoController.text : null,
-      );
-
-      final messenger = ScaffoldMessenger.of(context);
-      final navigator = Navigator.of(context);
-
-      // Optimistic UI: Close screen immediately and run task in background
-      navigator.pop();
+      String? imageUrl = _existingImageUrl;
 
       try {
-        if (widget.visitor == null) {
-           // Fire and forget (with error handling)
-           DatabaseService().addVisitor(visitorData).then((_) {
-             messenger.showSnackBar(
-               const SnackBar(content: Text('Visitor Added Successfully!')),
-             );
-           }).catchError((e) {
-             messenger.showSnackBar(
-               SnackBar(content: Text('Error adding visitor: $e')),
-             );
-           });
-        } else {
-           DatabaseService().updateVisitor(visitorData).then((_) {
-             messenger.showSnackBar(
-               const SnackBar(content: Text('Visitor Updated Successfully!')),
-             );
-           }).catchError((e) {
-             messenger.showSnackBar(
-               SnackBar(content: Text('Error updating visitor: $e')),
-             );
-           });
+        if (_imageFile != null) {
+          final String tempId = DateTime.now().millisecondsSinceEpoch.toString();
+          imageUrl = await StorageService().uploadVisitorPhoto(_imageFile!, tempId);
+        if (!mounted) return;
         }
+
+        final visitorData = Visitor(
+          id: widget.visitor?.id,
+          name: _nameController.text,
+          phone: _phoneController.text,
+          flatNumber: _flatController.text,
+          purpose: _selectedPurpose!,
+          checkInTime: _checkInController.text,
+          checkOutTime: _checkOutController.text.isNotEmpty ? _checkOutController.text : null,
+          notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+          status: widget.visitor?.status ?? 'IN',
+          createdAt: widget.visitor?.createdAt ?? DateTime.now(),
+          hasVehicle: _hasVehicle,
+          vehicleNumber: _hasVehicle ? _vehicleNoController.text : null,
+          imageUrl: imageUrl,
+        );
+
+        if (!mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        final navigator = Navigator.of(context);
+
+        if (widget.visitor == null) {
+          await DatabaseService().addVisitor(visitorData);
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Visitor Added Successfully!')),
+          );
+        } else {
+          await DatabaseService().updateVisitor(visitorData);
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Visitor Updated Successfully!')),
+          );
+        }
+        
+        navigator.pop();
       } catch (e) {
-        // Fallback catch (though async errors are caught above)
-        print("Error in submit: $e");
+        if (mounted) {
+          setState(() {
+            _isUploading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
       }
     }
   }
@@ -166,11 +243,13 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
           widget.visitor == null ? 'Add Visitor' : 'Edit Visitor',
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF1E293B), // Dark Navy
+        backgroundColor: const Color(0xFF1E293B),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: _isUploading 
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
@@ -184,7 +263,6 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
                 validator: (val) => val!.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-              
               CustomTextField(
                 controller: _phoneController,
                 label: 'Phone Number *',
@@ -193,19 +271,13 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
                 validator: (val) => val!.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-              
-              // Custom Dropdown for Purpose
               const Text(
                 'Purpose of Visit *',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF334155),
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedPurpose,
+                initialValue: _selectedPurpose,
                 items: _visitPurposes.map((purpose) {
                   return DropdownMenuItem(value: purpose, child: Text(purpose));
                 }).toList(),
@@ -215,20 +287,13 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
                   hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
                   filled: true,
                   fillColor: const Color(0xFFF1F5F9),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
                 validator: (val) => val == null ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-
               CustomTextField(
                 controller: _flatController,
                 label: 'Flat Number *',
@@ -236,7 +301,6 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
                 validator: (val) => val!.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-
               CustomTextField(
                 controller: _checkInController,
                 label: 'Check-In Time *',
@@ -247,7 +311,6 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
                 validator: (val) => val!.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-
               CustomTextField(
                 controller: _checkOutController,
                 label: 'Expected Check-Out Time',
@@ -257,18 +320,9 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
                 onTap: () => _selectTime(_checkOutController),
               ),
               const SizedBox(height: 16),
-
-               // Additional Notes (TextArea)
-               // Reusing CustomTextField but we need maxLines support. 
-               // Since CustomTextField doesn't have maxLines yet, I'll update it or just standard TextForm here.
-               // Let's use standard TextFormField for now for the TextArea to allow multiline.
               const Text(
                 'Additional Notes',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF334155),
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -279,32 +333,18 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
                   hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
                   filled: true,
                   fillColor: const Color(0xFFF1F5F9),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Vehicle Information (Toggle Switch)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Has Vehicle?',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                ),
+                title: const Text('Has Vehicle?', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
                 value: _hasVehicle,
-                onChanged: (bool value) {
-                  setState(() {
-                    _hasVehicle = value;
-                  });
-                },
+                onChanged: (bool value) => setState(() => _hasVehicle = value),
+                // ignore: deprecated_member_use
                 activeColor: const Color(0xFF1E293B),
               ),
               if (_hasVehicle) ...[
@@ -317,55 +357,39 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
                 ),
               ],
               const SizedBox(height: 16),
-
-              // Terms (Checkbox)
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
-                title: const Text(
-                  'I verify that the above information is correct and the ID proof has been checked.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
+                title: const Text('I verify that the above information is correct and the ID proof has been checked.', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                 value: _agreedToTerms,
-                onChanged: (bool? value) {
-                  setState(() {
-                    _agreedToTerms = value ?? false;
-                  });
-                },
+                onChanged: (bool? value) => setState(() => _agreedToTerms = value ?? false),
+                // ignore: deprecated_member_use
                 activeColor: const Color(0xFF1E293B),
               ),
               const SizedBox(height: 16),
-
-              // Visitor Photo (Optional)
-              const Text(
-                'Visitor Photo (Optional)',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF334155),
-                ),
-              ),
+              const Text('Visitor Photo (Optional)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
               const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE2E8F0)), // Default is solid
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                     Icon(Icons.camera_alt_outlined, color: Color(0xFF94A3B8), size: 32),
-                     SizedBox(height: 8),
-                     Text('Tap to take photo', style: TextStyle(color: Color(0xFF64748B))),
-                  ],
+              GestureDetector(
+                onTap: () => _showImageSourceActionSheet(context),
+                child: Container(
+                  width: double.infinity,
+                  height: 160,
+                  decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFFE2E8F0))),
+                  child: _imageFile != null
+                      ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(_imageFile!, fit: BoxFit.cover))
+                      : (_existingImageUrl != null
+                          ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(_existingImageUrl!, fit: BoxFit.cover))
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.camera_alt_outlined, color: Color(0xFF94A3B8), size: 32),
+                                SizedBox(height: 8),
+                                Text('Tap to take photo', style: TextStyle(color: Color(0xFF64748B))),
+                              ],
+                            )),
                 ),
               ),
-              
               const SizedBox(height: 32),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -375,11 +399,7 @@ class _AddVisitorScreenState extends State<AddVisitorScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: Text(widget.visitor == null ? 'ADD VISITOR' : 'UPDATE VISITOR', style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        )),
+                  child: Text(widget.visitor == null ? 'ADD VISITOR' : 'UPDATE VISITOR', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ),
               const SizedBox(height: 20),

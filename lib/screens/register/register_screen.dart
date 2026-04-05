@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../widgets/custom_text_field.dart';
-import '../login/login_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../../services/auth_service.dart';
 
@@ -47,16 +46,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
           name: _nameController.text.trim(),
         );
 
-        if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account Created Successfully!')),
-          );
-          
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const DashboardScreen()),
-            (route) => false,
-          );
-        }
+        if (!mounted) return;
+        
+        final messenger = ScaffoldMessenger.of(context);
+        final navigator = Navigator.of(context);
+
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Account Created Successfully!')),
+        );
+        
+        navigator.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          (route) => false,
+        );
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

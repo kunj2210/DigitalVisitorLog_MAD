@@ -10,7 +10,8 @@ import '../visitor_logs/visitor_logs_screen.dart';
 import '../profile/profile_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../visitor_details/visitor_details_screen.dart';
-import '../api_data/api_data_screen.dart';
+import '../../widgets/visitor_stats_chart.dart';
+import './qr_scanner_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -68,7 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Text(
                               'Welcome, ${user?.displayName ?? 'Security Guard'}',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.7),
+                                color: Colors.white.withValues(alpha: 0.7),
                                 fontSize: 14,
                               ),
                             ),
@@ -87,7 +88,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(Icons.notifications_outlined, color: Colors.amber, size: 24),
@@ -139,14 +140,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                           const SizedBox(width: 16),
-                          Expanded(
+                           Expanded(
                             child: ActionCard(
-                              icon: Icons.cloud_download_outlined,
-                              label: 'API Data',
+                              icon: Icons.qr_code_scanner,
+                              label: 'Scan QR',
                               onTap: () {
-                                Navigator.pushNamed(context, '/api-data');
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const QrScannerScreen()),
+                                );
                               },
-                              isPrimary: false,
+                              isPrimary: true,
                             ),
                           ),
                         ],
@@ -248,6 +252,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ],
                               ),
                       ),
+
+                       const SizedBox(height: 24),
+
+                      // ── Visitor Statistics (Option D) ───────────────────
+                      const Text(
+                        'Visitor Statistics',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF334155),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      VisitorStatsChart(stats: appState.visitPurposeStats),
 
                       const SizedBox(height: 24),
 

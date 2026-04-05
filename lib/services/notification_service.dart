@@ -98,16 +98,16 @@ class NotificationService {
     );
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print('User granted permission');
+      debugPrint('User granted permission');
     }
 
     // Set up foreground message handler
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Got a message whilst in the foreground!');
-      print('Message data: ${message.data}');
+      debugPrint('Got a message whilst in the foreground!');
+      debugPrint('Message data: ${message.data}');
 
       if (message.notification != null) {
-        print('Message also contained a notification: ${message.notification}');
+        debugPrint('Message also contained a notification: ${message.notification}');
         showInstantNotification(
             message.notification!.title ?? 'No title',
             message.notification!.body ?? 'No body');
@@ -116,7 +116,7 @@ class NotificationService {
 
     // Handle user tap on notification when app is in background but opened
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('A new onMessageOpenedApp event was published!');
+      debugPrint('A new onMessageOpenedApp event was published!');
       _handleNotificationClick(message.data);
     });
     
@@ -131,7 +131,7 @@ class NotificationService {
   @pragma('vm:entry-point')
   static void _onSelectNotification(NotificationResponse notificationResponse) {
     if (notificationResponse.payload != null) {
-      print('notification payload: ${notificationResponse.payload}');
+      debugPrint('notification payload: ${notificationResponse.payload}');
       // Cannot access instance navigatorKey directly in a static method easily if isolate changes,
       // but for this lab, we'll try to use the instance method or route it.
       _instance._handleNotificationClick({'payload': notificationResponse.payload});
@@ -139,7 +139,7 @@ class NotificationService {
   }
 
   void _handleNotificationClick(Map<String, dynamic> data) {
-    print("Notification clicked with data: $data");
+    debugPrint("Notification clicked with data: $data");
     String? route = data['route'] ?? data['payload'];
     if (route != null && navigatorKey.currentState != null) {
       navigatorKey.currentState!.pushNamed(route);
